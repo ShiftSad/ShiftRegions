@@ -1,5 +1,6 @@
 plugins {
     java
+    id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
 group = "codes.shiftmc"
@@ -17,6 +18,15 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+
+    // Mysql
+    compileOnly("io.vertx:vertx-sql-client:4.5.11")
+}
+
+tasks {
+    runServer {
+        minecraftVersion("1.21.4")
+    }
 }
 
 val targetJavaVersion = 21

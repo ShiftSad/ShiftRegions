@@ -1,4 +1,5 @@
 name: ShiftRegions
 version: '1.0-SNAPSHOT'
 main: codes.shiftmc.regions.ShiftRegions
+loader: codes.shiftmc.regions.ShiftRegionsLoader
 api-version: '1.21'
