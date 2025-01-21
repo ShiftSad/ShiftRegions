@@ -18,8 +18,6 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
-
-    // Mysql
     compileOnly("io.vertx:vertx-sql-client:4.5.11")
 }
 
