@@ -6,7 +6,6 @@ import org.bukkit.entity.BlockDisplay;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.util.Transformation;
 import org.joml.Vector3d;
-import org.joml.Vector3f;
 
 public class Line {
 
