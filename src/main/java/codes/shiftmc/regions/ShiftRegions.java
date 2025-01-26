@@ -1,49 +1,37 @@
 package codes.shiftmc.regions;
 
-import codes.shiftmc.regions.math.Cuboid;
-import codes.shiftmc.regions.math.Line;
-import codes.shiftmc.regions.math.MathUtils;
-import it.unimi.dsi.fastutil.Pair;
-import org.bukkit.Location;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerChatEvent;
+import codes.shiftmc.regions.configuration.DataSource;
+import codes.shiftmc.regions.repository.RegionRepository;
+import codes.shiftmc.regions.repository.UserRepository;
+import codes.shiftmc.regions.repository.impl.MySQLRegionRepository;
+import codes.shiftmc.regions.repository.impl.MySQLUserRepository;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public final class ShiftRegions extends JavaPlugin implements Listener {
+public final class ShiftRegions extends JavaPlugin {
 
-    Location point1;
-    Location point2;
-    Cuboid cuboid;
+    private DataSource dataSource;
+    private RegionRepository regionRepository;
+    private UserRepository userRepository;
 
     @Override
     public void onEnable() {
-        getServer().getPluginManager().registerEvents(this, this);
+        saveDefaultConfig();
+        loadConfiguration();
+
+        regionRepository.createTable().subscribe();
+        userRepository.createTable().subscribe();
     }
 
-    @EventHandler
-    public void onMessage(PlayerChatEvent event) {
-        if (event.getMessage().equals("point1")) {
-            if (cuboid != null) {
-                cuboid.setMax(MathUtils.toVector(event.getPlayer().getLocation()));
-                return;
-            }
-            point1 = event.getPlayer().getLocation();
-            event.getPlayer().sendMessage("Point 1 set to " + point1);
-        }
+    private void loadConfiguration() {
+        var config = getConfig();
 
-        else if (event.getMessage().equals("point2")) {
-            if (cuboid != null) {
-                cuboid.setMin(MathUtils.toVector(event.getPlayer().getLocation()));
-                return;
-            }
-            point2 = event.getPlayer().getLocation();
-            event.getPlayer().sendMessage("Point 2 set to " + point2);
-        }
+        if (!config.contains("settings.datasource")) {
+            dataSource = new DataSource("localhost", 3306, "test", "root", "password", true, 10, 100, 5, 1000, 10);
+            config.createSection("settings.datasource", dataSource.serialize());
+            saveConfig();
+        } else dataSource = DataSource.deserialize(config.getConfigurationSection("settings.datasource").getValues(false));
 
-        else if (event.getMessage().equals("line")) {
-            cuboid = new Cuboid(Pair.of(MathUtils.toVector(point1), MathUtils.toVector(point2)));
-            cuboid.render(point1.getWorld());
-        }
+        regionRepository = new MySQLRegionRepository(DataSource.getClient(dataSource));
+        userRepository = new MySQLUserRepository(DataSource.getClient(dataSource));
     }
 }

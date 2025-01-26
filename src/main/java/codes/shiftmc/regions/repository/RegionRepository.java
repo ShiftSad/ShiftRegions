@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public interface RegionRepository {
 
+    Mono<Void> createTable();
     Mono<Region> findByUUID(UUID uuid);
     Mono<Region> findByOwner(UUID uuid);
     Mono<Region> save(Region region);

@@ -25,6 +25,47 @@ public class MySQLRegionRepository implements RegionRepository {
     }
 
     @Override
+    public Mono<Void> createTable() {
+        String createRegionsTable = """
+        CREATE TABLE IF NOT EXISTS regions (
+            id CHAR(36) PRIMARY KEY,
+            min_x INT NOT NULL,
+            min_y INT NOT NULL,
+            min_z INT NOT NULL,
+            max_x INT NOT NULL,
+            max_y INT NOT NULL,
+            max_z INT NOT NULL,
+            owner CHAR(36) NOT NULL,
+            flags INT NOT NULL DEFAULT 0,
+            UNIQUE (owner)
+        );
+    """;
+
+        String createMembersTable = """
+        CREATE TABLE IF NOT EXISTS members (
+            region_id CHAR(36) NOT NULL,
+            member_id CHAR(36) NOT NULL,
+            value INT NOT NULL,
+            PRIMARY KEY (region_id, member_id),
+            FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE CASCADE
+        );
+    """;
+
+        return Mono.create(sink ->
+                client.query(createRegionsTable).execute(ar -> {
+                    if (!ar.succeeded()) {
+                        sink.error(ar.cause());
+                        return;
+                    }
+                    client.query(createMembersTable).execute(ar2 -> {
+                        if (ar2.succeeded()) sink.success();
+                        else sink.error(ar2.cause());
+                    });
+                })
+        );
+    }
+
+    @Override
     public Mono<Region> findByUUID(UUID uuid) {
         return findRegionByField("id", uuid.toString());
     }

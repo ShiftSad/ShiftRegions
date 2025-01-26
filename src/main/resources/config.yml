@@ -1,0 +1,13 @@
+settings:
+  datasource:
+    hostname: localhost
+    port: 3306
+    database: test
+    username: root
+    password: root
+    cachePreparedStatement: true
+    preparedStatementCacheMaxSize: 100
+    preparedStatementCacheSqlLimit: 2048
+    reconnectAttempts: 3
+    reconnectInterval: 1000
+    maxPoolSize: 10

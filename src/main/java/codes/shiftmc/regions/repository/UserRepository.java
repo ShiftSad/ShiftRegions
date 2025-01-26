@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public interface UserRepository {
 
+    Mono<Void> createTable();
     Mono<UserData> findByUUID(UUID uuid);
     Mono<UserData> save(UserData region);
     Mono<UserData> updateUser(UserData region);
