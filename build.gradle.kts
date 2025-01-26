@@ -20,6 +20,7 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
     compileOnly("io.vertx:vertx-sql-client:4.5.11")
     compileOnly("io.projectreactor:reactor-core:3.7.2")
+    compileOnly("io.vertx:vertx-mysql-client:4.5.12")
 }
 
 tasks {

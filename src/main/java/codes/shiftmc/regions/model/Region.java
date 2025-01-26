@@ -6,7 +6,7 @@ import it.unimi.dsi.fastutil.Pair;
 import java.util.List;
 import java.util.UUID;
 
-public abstract class Region {
+public class Region {
 
     protected UUID id;
 
@@ -52,6 +52,10 @@ public abstract class Region {
     }
 
     // I miss lombok :(
+
+    public int flags() {
+        return flags;
+    }
 
     public UUID id() {
         return id;
