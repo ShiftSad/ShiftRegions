@@ -14,7 +14,18 @@ public class Cuboid {
     public Cuboid(Pair<Vector3d, Vector3d> pair) {
         this.first = pair.first();
         this.second = pair.second();
-        initializeLines();
+    }
+
+    public int getVolume() {
+        return (int) ((second.x - first.x) * (second.y - first.y) * (second.z - first.z));
+    }
+
+    public Vector3d getFirst() {
+        return first;
+    }
+
+    public Vector3d getSecond() {
+        return second;
     }
 
     /**
@@ -77,6 +88,11 @@ public class Cuboid {
      * for all twelve lines to reflect the new corners.
      */
     private void updateLines() {
+        if (lines == null) {
+            initializeLines();
+            return;
+        }
+
         // Bottom face (y = min.y)
         lines[0].setStart(new Vector3d(first.x, first.y, first.z)); // Line 1
         lines[0].setEnd(new Vector3d(first.x, first.y, second.z));   // From (min.x, min.y, min.z) -> (min.x, min.y, max.z)

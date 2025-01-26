@@ -25,6 +25,14 @@ public class PlayerListener extends ShiftListener {
             })
             .build();
 
+    public static void clearSelection(UUID uuid) {
+        var cuboid = selectionCache.getIfPresent(uuid);
+        if (cuboid != null) {
+            cuboid.dispose();
+            selectionCache.invalidate(uuid);
+        }
+    }
+
     public PlayerListener(ShiftRegions plugin) {
         super(plugin);
     }

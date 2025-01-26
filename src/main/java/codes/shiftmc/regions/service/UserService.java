@@ -19,7 +19,7 @@ public class UserService {
         // Configure your cache as needed: size limit, expiration, etc.
         this.userCache = Caffeine.newBuilder()
                 .maximumSize(10_000)
-                .expireAfterAccess(10, TimeUnit.MINUTES)
+                .expireAfterAccess(2, TimeUnit.HOURS)
                 .build();
 
         createTable().subscribe();
