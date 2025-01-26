@@ -31,7 +31,8 @@ public final class ShiftRegions extends JavaPlugin {
             saveConfig();
         } else dataSource = DataSource.deserialize(config.getConfigurationSection("settings.datasource").getValues(false));
 
-        regionRepository = new MySQLRegionRepository(DataSource.getClient(dataSource));
-        userRepository = new MySQLUserRepository(DataSource.getClient(dataSource));
+        DataSource.getClient(dataSource);
+        regionRepository = new MySQLRegionRepository(DataSource.getClient());
+        userRepository = new MySQLUserRepository(DataSource.getClient());
     }
 }

@@ -6,6 +6,8 @@ import io.vertx.sqlclient.PoolOptions;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.SerializableAs;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +27,7 @@ public record DataSource(
         int maxPoolSize
 ) implements ConfigurationSerializable {
 
+    private static final Logger log = LoggerFactory.getLogger(DataSource.class);
     private static MySQLPool client;
 
     @Override
@@ -86,6 +89,7 @@ public record DataSource(
         var poolOptions = new PoolOptions()
                 .setMaxSize(source.maxPoolSize);
 
+        log.info("Creating MySQL connection pool with options: {}", connectOptions);
         client = MySQLPool.pool(connectOptions, poolOptions);
     }
 }
