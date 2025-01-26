@@ -5,5 +5,7 @@ public record BlockVector(
     int y,
     int z
 ) {
-
+    public BlockVector(Integer[] coords) {
+        this(coords[0], coords[1], coords[2]);
+    }
 }

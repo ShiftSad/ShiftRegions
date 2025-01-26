@@ -50,4 +50,12 @@ public class Line {
         this.start = vector3f;
         teleportEntity(blockDisplay.getWorld());
     }
+
+    /**
+     * Removes the line from the world
+     */
+    public void dispose() {
+        blockDisplay.remove();
+        blockDisplay = null;
+    }
 }
