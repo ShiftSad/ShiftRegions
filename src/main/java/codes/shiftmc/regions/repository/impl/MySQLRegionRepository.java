@@ -3,6 +3,10 @@ package codes.shiftmc.regions.repository.impl;
 import codes.shiftmc.regions.math.BlockVector;
 import codes.shiftmc.regions.model.Region;
 import codes.shiftmc.regions.repository.RegionRepository;
+import io.vertx.mysqlclient.MySQLPool;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
+import io.vertx.sqlclient.Tuple;
 import it.unimi.dsi.fastutil.Pair;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -10,11 +14,6 @@ import reactor.core.publisher.Mono;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
-import io.vertx.mysqlclient.MySQLPool;
-import io.vertx.sqlclient.Tuple;
-import io.vertx.sqlclient.Row;
-import io.vertx.sqlclient.RowSet;
 
 public class MySQLRegionRepository implements RegionRepository {
 

@@ -1,7 +1,7 @@
 package codes.shiftmc.regions.repository.impl;
 
-import codes.shiftmc.regions.repository.UserRepository;
 import codes.shiftmc.regions.model.UserData;
+import codes.shiftmc.regions.repository.UserRepository;
 import io.vertx.mysqlclient.MySQLPool;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
