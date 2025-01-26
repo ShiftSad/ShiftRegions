@@ -9,7 +9,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class ShiftRegions extends JavaPlugin {
 
-    private DataSource dataSource;
     private RegionRepository regionRepository;
     private UserRepository userRepository;
 
@@ -24,6 +23,7 @@ public final class ShiftRegions extends JavaPlugin {
 
     private void loadConfiguration() {
         var config = getConfig();
+        DataSource dataSource;
 
         if (!config.contains("settings.datasource")) {
             dataSource = new DataSource("localhost", 3306, "test", "root", "password", true, 10, 100, 5, 1000, 10);
