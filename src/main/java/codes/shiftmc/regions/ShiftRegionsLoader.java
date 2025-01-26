@@ -16,7 +16,7 @@ public class ShiftRegionsLoader implements PluginLoader {
         var resolver = new MavenLibraryResolver();
         resolver.addRepository(new RemoteRepository.Builder("central", "default", "https://repo1.maven.org/maven2/").build());
         resolver.addDependency(new Dependency(new DefaultArtifact("io.vertx:vertx-sql-client:4.5.11"), null));
-
+        resolver.addDependency(new Dependency(new DefaultArtifact("io.projectreactor:reactor-core:3.7.2"), null));
         pluginClasspathBuilder.addLibrary(resolver);
     }
 }
