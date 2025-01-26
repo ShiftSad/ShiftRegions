@@ -18,6 +18,7 @@ public class ShiftRegionsLoader implements PluginLoader {
         resolver.addDependency(new Dependency(new DefaultArtifact("io.vertx:vertx-sql-client:4.5.11"), null));
         resolver.addDependency(new Dependency(new DefaultArtifact("io.projectreactor:reactor-core:3.7.2"), null));
         resolver.addDependency(new Dependency(new DefaultArtifact("io.vertx:vertx-mysql-client:4.5.12"), null));
+        resolver.addDependency(new Dependency(new DefaultArtifact("com.github.ben-manes.caffeine:caffeine:3.2.0"), null));
         pluginClasspathBuilder.addLibrary(resolver);
     }
 }

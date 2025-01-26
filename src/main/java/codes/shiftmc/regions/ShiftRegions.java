@@ -5,6 +5,8 @@ import codes.shiftmc.regions.repository.RegionRepository;
 import codes.shiftmc.regions.repository.UserRepository;
 import codes.shiftmc.regions.repository.impl.MySQLRegionRepository;
 import codes.shiftmc.regions.repository.impl.MySQLUserRepository;
+import codes.shiftmc.regions.service.RegionService;
+import codes.shiftmc.regions.service.UserService;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class ShiftRegions extends JavaPlugin {
@@ -12,13 +14,16 @@ public final class ShiftRegions extends JavaPlugin {
     private RegionRepository regionRepository;
     private UserRepository userRepository;
 
+    private RegionService regionService;
+    private UserService userService;
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
         loadConfiguration();
 
-        regionRepository.createTable().subscribe();
-        userRepository.createTable().subscribe();
+        regionService = new RegionService(regionRepository);
+        userService = new UserService(userRepository);
     }
 
     private void loadConfiguration() {
