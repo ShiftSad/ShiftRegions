@@ -165,6 +165,10 @@ public class RegionCommand {
         var location = player.getLocation();
 
         regionService.findByLocation(location.getBlockX(), location.getBlockY(), location.getBlockZ())
+                .switchIfEmpty(Mono.defer(() -> {
+                    player.sendMessage("No region found at your location");
+                    return Mono.empty();
+                }))
                 .flatMap(region -> {
                     new ManageMembers(region, player);
                     return Mono.empty();
