@@ -74,12 +74,11 @@ public class RegionCommand {
         var pos2 = pdc.get(new NamespacedKey("regions", "pos2"), PersistentDataType.INTEGER_ARRAY);
 
         userService.findByUUID(player.getUniqueId())
+                .switchIfEmpty(Mono.defer(() -> {
+                    player.sendMessage("Failed loading user data, try logging in again");
+                    return Mono.empty();
+                }))
                 .flatMap(user -> {
-                    if (user == null) {
-                        player.sendMessage("Failed loading user data, try logging.");
-                        return Mono.empty();
-                    }
-
                     assert pos1 != null;
                     assert pos2 != null;
                     var cuboid = new Cuboid(
