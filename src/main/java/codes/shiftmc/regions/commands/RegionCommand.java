@@ -113,32 +113,45 @@ public class RegionCommand {
 
     private int delete(CommandContext<CommandSourceStack> ctx) {
         var player = getPlayer(ctx);
-        if (player == null) return Command.SINGLE_SUCCESS;
+        if (player == null) {
+            return Command.SINGLE_SUCCESS;
+        }
+
         var location = player.getLocation();
 
-        var region = regionService.findByLocation(location.getBlockX(), location.getBlockY(), location.getBlockZ()).block();
-        if (region == null) {
-            player.sendMessage("No region found at your location");
-            return Command.SINGLE_SUCCESS;
-        }
+        regionService.findByLocation(location.getBlockX(), location.getBlockY(), location.getBlockZ())
+                .flatMap(region -> {
+                    if (region == null) {
+                        player.sendMessage("No region found at your location");
+                        return Mono.empty();
+                    }
 
-        if (!region.owner().equals(player.getUniqueId())) {
-            player.sendMessage("You do not own this region");
-            return Command.SINGLE_SUCCESS;
-        }
+                    if (!region.owner().equals(player.getUniqueId())) {
+                        player.sendMessage("You do not own this region");
+                        return Mono.empty();
+                    }
 
-        regionService.deleteRegion(region.id());
-        player.sendMessage("Region deleted successfully");
+                    player.sendMessage("Region deleted successfully");
+                    regionService.deleteRegion(region.id());
 
+                    return Mono.empty();
+                })
+                .subscribe(
+                        unused -> {},
+                        throwable -> player.sendMessage("An error occurred while deleting the region: "
+                                + throwable.getMessage())
+                );
+
+        // Return immediately (non-blocking). The reactive chain runs in the background.
         return Command.SINGLE_SUCCESS;
     }
 
     private int flags(CommandContext<CommandSourceStack> ctx) {
-
+        return Command.SINGLE_SUCCESS;
     }
 
     private int relations(CommandContext<CommandSourceStack> ctx) {
-
+        return Command.SINGLE_SUCCESS;
     }
 
     private Player getPlayer(CommandContext<CommandSourceStack> ctx) {
