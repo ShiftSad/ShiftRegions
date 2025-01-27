@@ -30,11 +30,9 @@ public class MySQLUserRepository implements UserRepository {
 
         return Mono.create(sink ->
                 client.query(query).execute(ar -> {
-                    if (ar.succeeded()) {
-                        sink.success();
-                    } else {
-                        sink.error(ar.cause());
-                    }
+                    if (ar.succeeded()) sink.success();
+                    else sink.error(ar.cause());
+
                 })
         );
     }

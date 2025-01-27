@@ -10,6 +10,7 @@ import io.vertx.sqlclient.Tuple;
 import it.unimi.dsi.fastutil.Pair;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoSink;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -209,28 +210,124 @@ public class MySQLRegionRepository implements RegionRepository {
                     }
 
                     Row regionRow = rows.iterator().next();
-                    UUID regionId = UUID.fromString(regionRow.getString("id"));
-
-                    // Now fetch all members for this region
-                    client.preparedQuery(memberQuery)
-                            .execute(Tuple.of(regionId.toString()), memberAr -> {
-                                if (!memberAr.succeeded()) {
-                                    sink.error(memberAr.cause());
-                                    return;
-                                }
-
-                                List<Pair<UUID, Integer>> members = new ArrayList<>();
-                                for (Row memberRow : memberAr.result()) {
-                                    UUID memberId = UUID.fromString(memberRow.getString("member_id"));
-                                    int flags = memberRow.getInteger("flags");
-                                    members.add(Pair.of(memberId, flags));
-                                }
-
-                                Region region = mapRowToRegion(regionRow, members);
-                                sink.success(region);
-                            });
+                    fetchMembersAndCompleteRegion(regionRow, sink);
                 })
         );
+    }
+
+    /**
+     * Find the first Region that contains the coordinates (x,y,z).
+     * If none found, returns null.
+     */
+    @Override
+    public Mono<Region> findByLocation(int x, int y, int z) {
+        // Query that finds a region whose bounding box encloses (x, y, z).
+        // If multiple match, return the first. (You may want to remove LIMIT 1 if you expect multiple.)
+        String query = """
+            SELECT * FROM regions
+            WHERE min_x <= ? AND max_x >= ?
+              AND min_y <= ? AND max_y >= ?
+              AND min_z <= ? AND max_z >= ?
+            LIMIT 1
+        """;
+
+        // We'll do the same "fetch region + members" pattern
+        return Mono.create(sink ->
+                client.preparedQuery(query).execute(Tuple.of(x, x, y, y, z, z), ar -> {
+                    if (ar.failed()) {
+                        sink.error(ar.cause());
+                        return;
+                    }
+
+                    RowSet<Row> rows = ar.result();
+                    if (!rows.iterator().hasNext()) {
+                        // No region found
+                        sink.success(null);
+                        return;
+                    }
+
+                    Row regionRow = rows.iterator().next();
+                    fetchMembersAndCompleteRegion(regionRow, sink);
+                })
+        );
+    }
+
+    /**
+     * Check if any region intersects the bounding box
+     * defined by 'first' and 'second'.
+     */
+    @Override
+    public Mono<Boolean> checkCollision(BlockVector first, BlockVector second) {
+        // Determine bounding box (minX <= maxX, etc.)
+        int minX = Math.min(first.x(), second.x());
+        int minY = Math.min(first.y(), second.y());
+        int minZ = Math.min(first.z(), second.z());
+        int maxX = Math.max(first.x(), second.x());
+        int maxY = Math.max(first.y(), second.y());
+        int maxZ = Math.max(first.z(), second.z());
+
+        String query = """
+            SELECT 1
+            FROM regions
+            WHERE
+                min_x <= ? AND max_x >= ?
+                AND min_y <= ? AND max_y >= ?
+                AND min_z <= ? AND max_z >= ?
+            LIMIT 1
+        """;
+
+        return Mono.create(sink ->
+                client.preparedQuery(query)
+                        .execute(Tuple.of(maxX, minX, maxY, minY, maxZ, minZ), ar -> {
+                            if (ar.failed()) {
+                                sink.error(ar.cause());
+                                return;
+                            }
+
+                            RowSet<Row> rows = ar.result();
+                            // If we have at least 1 row, there's an intersection
+                            if (rows.iterator().hasNext()) {
+                                sink.success(true);
+                            } else {
+                                sink.success(false);
+                            }
+                        })
+        );
+    }
+
+    @Override
+    public Mono<Void> deleteRegion(UUID uuid) {
+        String deleteRegionQuery = "DELETE FROM regions WHERE id = ?";
+        return Mono.create(sink -> {
+            client.preparedQuery(deleteRegionQuery)
+                    .execute(Tuple.of(uuid.toString()), ar -> {
+                        if (ar.succeeded()) sink.success();
+                        else sink.error(ar.cause());
+                    });
+        });
+    }
+
+    private void fetchMembersAndCompleteRegion(Row regionRow, MonoSink<Region> sink) {
+        UUID regionId = UUID.fromString(regionRow.getString("id"));
+        String memberQuery = "SELECT member_id, flags FROM region_members WHERE region_id = ?";
+
+        client.preparedQuery(memberQuery)
+                .execute(Tuple.of(regionId.toString()), memberAr -> {
+                    if (memberAr.failed()) {
+                        sink.error(memberAr.cause());
+                        return;
+                    }
+
+                    List<Pair<UUID, Integer>> members = new ArrayList<>();
+                    for (Row memberRow : memberAr.result()) {
+                        UUID memberId = UUID.fromString(memberRow.getString("member_id"));
+                        int flags = memberRow.getInteger("flags");
+                        members.add(Pair.of(memberId, flags));
+                    }
+
+                    Region region = mapRowToRegion(regionRow, members);
+                    sink.success(region);
+                });
     }
 
     private Region mapRowToRegion(Row row, List<Pair<UUID, Integer>> members) {

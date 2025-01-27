@@ -91,8 +91,6 @@ public class RegionCommand {
                             Flag.NONE.getBit()
                     );
 
-        regionService.save(region).subscribe();
-        player.sendMessage("Region created successfully");
                     return regionService.save(region);
                 })
                 .doOnSuccess(region -> {
@@ -114,7 +112,25 @@ public class RegionCommand {
     }
 
     private int delete(CommandContext<CommandSourceStack> ctx) {
+        var player = getPlayer(ctx);
+        if (player == null) return Command.SINGLE_SUCCESS;
+        var location = player.getLocation();
 
+        var region = regionService.findByLocation(location.getBlockX(), location.getBlockY(), location.getBlockZ()).block();
+        if (region == null) {
+            player.sendMessage("No region found at your location");
+            return Command.SINGLE_SUCCESS;
+        }
+
+        if (!region.owner().equals(player.getUniqueId())) {
+            player.sendMessage("You do not own this region");
+            return Command.SINGLE_SUCCESS;
+        }
+
+        regionService.deleteRegion(region.id());
+        player.sendMessage("Region deleted successfully");
+
+        return Command.SINGLE_SUCCESS;
     }
 
     private int flags(CommandContext<CommandSourceStack> ctx) {
