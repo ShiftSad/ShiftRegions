@@ -3,6 +3,7 @@ package codes.shiftmc.regions.commands;
 import codes.shiftmc.regions.listener.PlayerListener;
 import codes.shiftmc.regions.math.Cuboid;
 import codes.shiftmc.regions.math.MathUtils;
+import codes.shiftmc.regions.menus.ManageMembers;
 import codes.shiftmc.regions.model.Flag;
 import codes.shiftmc.regions.model.Region;
 import codes.shiftmc.regions.service.RegionService;
@@ -46,7 +47,7 @@ public class RegionCommand {
                 .then(Commands.literal("create").executes(this::create))
                 .then(Commands.literal("delete").executes(this::delete))
                 .then(Commands.literal("flags").executes(this::flags))
-                .then(Commands.literal("relations").executes(this::relations));
+                .then(Commands.literal("members").executes(this::members));
     }
 
     private int create(CommandContext<CommandSourceStack> ctx) {
@@ -150,7 +151,21 @@ public class RegionCommand {
         return Command.SINGLE_SUCCESS;
     }
 
-    private int relations(CommandContext<CommandSourceStack> ctx) {
+    private int members(CommandContext<CommandSourceStack> ctx) {
+        var player = getPlayer(ctx);
+        if (player == null) return Command.SINGLE_SUCCESS;
+        var location = player.getLocation();
+
+        regionService.findByLocation(location.getBlockX(), location.getBlockY(), location.getBlockZ())
+                .flatMap(region -> {
+                    new ManageMembers(region, player);
+                    return Mono.empty();
+                })
+                .subscribe(
+                        unused -> {},
+                        throwable -> player.sendMessage("An error occorred getting information about the region you are in: "
+                                                                  + throwable.getMessage())
+                );
         return Command.SINGLE_SUCCESS;
     }
 
