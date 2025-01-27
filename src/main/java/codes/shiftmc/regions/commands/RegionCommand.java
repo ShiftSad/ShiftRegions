@@ -14,8 +14,11 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import it.unimi.dsi.fastutil.Pair;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.joml.Vector3d;
 import reactor.core.publisher.Mono;
@@ -26,6 +29,8 @@ import java.util.UUID;
 // I also mostly know what I'm doing
 @SuppressWarnings("UnstableApiUsage")
 public class RegionCommand {
+
+    private static final MiniMessage mm = MiniMessage.builder().build();
 
     private final RegionService regionService;
     private final UserService userService;
@@ -38,6 +43,7 @@ public class RegionCommand {
      *     - delete
      *     - flags
      *     - relations
+     *     - wand
      * }
      **/
     public RegionCommand(RegionService regionService, UserService userService) {
@@ -50,6 +56,7 @@ public class RegionCommand {
             .then(Commands.literal("delete").executes(this::delete))
             .then(Commands.literal("flags").executes(this::flags))
             .then(Commands.literal("members").executes(this::members))
+            .then(Commands.literal("wand").executes(this::wand))
             .build();
 
     private int create(CommandContext<CommandSourceStack> ctx) {
@@ -168,6 +175,28 @@ public class RegionCommand {
                         throwable -> player.sendMessage("An error occorred getting information about the region you are in: "
                                                                   + throwable.getMessage())
                 );
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int wand(CommandContext<CommandSourceStack> ctx) {
+        var player = getPlayer(ctx);
+        if (player == null) return Command.SINGLE_SUCCESS;
+
+        var item = ItemStack.of(Material.ECHO_SHARD);
+        item.editMeta(meta -> {
+           meta.customName(mm.deserialize("<green>Terrain selection"));
+           meta.lore(List.of(
+                   mm.deserialize("\uD835\uDDEB <aqua>LEFT CLICK for first position"),
+                   mm.deserialize("\uD835\uDDEB <aqua>RIGHT CLICK for second position")
+           ));
+
+           var pdc = meta.getPersistentDataContainer();
+           pdc.set(new NamespacedKey("regions", "region_creator"), PersistentDataType.BOOLEAN, true);
+        });
+
+        var inventory = player.getInventory();
+        inventory.addItem(item);
+
         return Command.SINGLE_SUCCESS;
     }
 
