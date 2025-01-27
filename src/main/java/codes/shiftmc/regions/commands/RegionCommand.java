@@ -130,12 +130,11 @@ public class RegionCommand {
         var location = player.getLocation();
 
         regionService.findByLocation(location.getBlockX(), location.getBlockY(), location.getBlockZ())
+                .switchIfEmpty(Mono.defer(() -> {
+                    player.sendMessage("No region found at your location");
+                    return Mono.empty();
+                }))
                 .flatMap(region -> {
-                    if (region == null) {
-                        player.sendMessage("No region found at your location");
-                        return Mono.empty();
-                    }
-
                     if (!region.owner().equals(player.getUniqueId())) {
                         player.sendMessage("You do not own this region");
                         return Mono.empty();
