@@ -1,5 +1,6 @@
 package codes.shiftmc.regions;
 
+import codes.shiftmc.regions.commands.RegionCommand;
 import codes.shiftmc.regions.configuration.DataSource;
 import codes.shiftmc.regions.repository.RegionRepository;
 import codes.shiftmc.regions.repository.UserRepository;
@@ -7,8 +8,11 @@ import codes.shiftmc.regions.repository.impl.MySQLRegionRepository;
 import codes.shiftmc.regions.repository.impl.MySQLUserRepository;
 import codes.shiftmc.regions.service.RegionService;
 import codes.shiftmc.regions.service.UserService;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.plugin.java.JavaPlugin;
 
+// By now, I should probably know what I'm doing
+@SuppressWarnings("UnstableApiUsage")
 public final class ShiftRegions extends JavaPlugin {
 
     private RegionRepository regionRepository;
@@ -24,6 +28,12 @@ public final class ShiftRegions extends JavaPlugin {
 
         regionService = new RegionService(regionRepository);
         userService = new UserService(userRepository);
+
+        // I know the correct way would be the bootloader, but I can't be bothered
+        this.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, commands -> {
+            var region = new RegionCommand(regionService, userService);
+            commands.registrar().register(region.root);
+        });
     }
 
     private void loadConfiguration() {

@@ -10,6 +10,7 @@ import codes.shiftmc.regions.service.RegionService;
 import codes.shiftmc.regions.service.UserService;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import it.unimi.dsi.fastutil.Pair;
@@ -42,13 +43,14 @@ public class RegionCommand {
     public RegionCommand(RegionService regionService, UserService userService) {
         this.regionService = regionService;
         this.userService = userService;
-
-        var root = Commands.literal("region")
-                .then(Commands.literal("create").executes(this::create))
-                .then(Commands.literal("delete").executes(this::delete))
-                .then(Commands.literal("flags").executes(this::flags))
-                .then(Commands.literal("members").executes(this::members));
     }
+
+    public final LiteralCommandNode<CommandSourceStack> root = Commands.literal("region")
+            .then(Commands.literal("create").executes(this::create))
+            .then(Commands.literal("delete").executes(this::delete))
+            .then(Commands.literal("flags").executes(this::flags))
+            .then(Commands.literal("members").executes(this::members))
+            .build();
 
     private int create(CommandContext<CommandSourceStack> ctx) {
         var player = getPlayer(ctx);
