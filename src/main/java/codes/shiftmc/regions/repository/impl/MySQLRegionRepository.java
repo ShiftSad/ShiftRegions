@@ -36,8 +36,7 @@ public class MySQLRegionRepository implements RegionRepository {
             max_y INT NOT NULL,
             max_z INT NOT NULL,
             owner CHAR(36) NOT NULL,
-            flags INT NOT NULL DEFAULT 0,
-            UNIQUE (owner)
+            flags INT NOT NULL DEFAULT 0
         );
     """;
 
@@ -78,9 +77,9 @@ public class MySQLRegionRepository implements RegionRepository {
     @Override
     public Mono<Region> save(Region region) {
         String regionQuery = """
-        INSERT INTO regions (id, min_x, min_y, min_z, max_x, max_y, max_z, owner, flags)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """;
+            INSERT INTO regions (id, min_x, min_y, min_z, max_x, max_y, max_z, owner, flags)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """;
 
         Mono<Void> insertRegionMono = Mono.create(sink -> {
             client.preparedQuery(regionQuery)
@@ -97,11 +96,8 @@ public class MySQLRegionRepository implements RegionRepository {
                                     region.flags()
                             ),
                             ar -> {
-                                if (ar.succeeded()) {
-                                    sink.success();
-                                } else {
-                                    sink.error(ar.cause());
-                                }
+                                if (ar.succeeded()) sink.success();
+                                else sink.error(ar.cause());
                             }
                     );
         });
@@ -115,10 +111,10 @@ public class MySQLRegionRepository implements RegionRepository {
     @Override
     public Mono<Region> updateRegion(Region region) {
         String regionQuery = """
-        UPDATE regions
-        SET min_x = ?, min_y = ?, min_z = ?, max_x = ?, max_y = ?, max_z = ?, owner = ?, flags = ?
-        WHERE id = ?
-    """;
+            UPDATE regions
+            SET min_x = ?, min_y = ?, min_z = ?, max_x = ?, max_y = ?, max_z = ?, owner = ?, flags = ?
+            WHERE id = ?
+        """;
 
         Mono<Void> updateRegionMono = Mono.create(sink -> {
             client.preparedQuery(regionQuery)
@@ -194,7 +190,6 @@ public class MySQLRegionRepository implements RegionRepository {
 
     private Mono<Region> findRegionByField(String fieldName, String value) {
         String regionQuery = "SELECT * FROM regions WHERE " + fieldName + " = ?";
-        String memberQuery = "SELECT member_id, flags FROM region_members WHERE region_id = ?";
 
         return Mono.create(sink ->
                 client.preparedQuery(regionQuery).execute(Tuple.of(value), ar -> {
@@ -286,11 +281,8 @@ public class MySQLRegionRepository implements RegionRepository {
 
                             RowSet<Row> rows = ar.result();
                             // If we have at least 1 row, there's an intersection
-                            if (rows.iterator().hasNext()) {
-                                sink.success(true);
-                            } else {
-                                sink.success(false);
-                            }
+                            if (rows.iterator().hasNext()) sink.success(true);
+                            else sink.success(false);
                         })
         );
     }

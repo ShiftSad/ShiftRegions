@@ -32,12 +32,12 @@ public final class ShiftRegions extends JavaPlugin {
 
         // I know the correct way would be the bootloader, but I can't be bothered
         this.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, commands -> {
-            var region = new RegionCommand(regionService, userService);
+            var region = new RegionCommand(regionService, userService, this);
             commands.registrar().register(region.root);
         });
 
         // Register Player Listener
-        new PlayerListener(this);
+        new PlayerListener(this, userService);
     }
 
     private void loadConfiguration() {

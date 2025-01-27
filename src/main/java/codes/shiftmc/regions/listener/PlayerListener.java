@@ -1,14 +1,16 @@
 package codes.shiftmc.regions.listener;
 
 import codes.shiftmc.regions.ShiftRegions;
-import codes.shiftmc.regions.math.BlockVector;
 import codes.shiftmc.regions.math.Cuboid;
+import codes.shiftmc.regions.model.UserData;
+import codes.shiftmc.regions.service.UserService;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import it.unimi.dsi.fastutil.Pair;
 import org.bukkit.NamespacedKey;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.persistence.PersistentDataType;
 import org.joml.Vector3d;
 
@@ -33,8 +35,11 @@ public class PlayerListener extends ShiftListener {
         }
     }
 
-    public PlayerListener(ShiftRegions plugin) {
+    private final UserService userService;
+
+    public PlayerListener(ShiftRegions plugin, UserService userService) {
         super(plugin);
+        this.userService = userService;
     }
 
     /**
@@ -48,7 +53,9 @@ public class PlayerListener extends ShiftListener {
         var lookingAt = player.getTargetBlock(null, 5).getLocation();
         var item = player.getInventory().getItemInMainHand();
 
-        var ipdc = item.getItemMeta().getPersistentDataContainer();
+        var meta = item.getItemMeta();
+        if (meta == null) return;
+        var ipdc = meta.getPersistentDataContainer();
         var ppdc = player.getPersistentDataContainer();
         if (!ipdc.has(new NamespacedKey("regions", "region_creator"), PersistentDataType.BOOLEAN)) return;
 
@@ -63,6 +70,8 @@ public class PlayerListener extends ShiftListener {
                 PersistentDataType.INTEGER_ARRAY,
                 new int[]{lookingAt.getBlockX(), lookingAt.getBlockY(), lookingAt.getBlockZ()}
         );
+
+        event.setCancelled(true);
 
         var cuboid = selectionCache.getIfPresent(player.getUniqueId());
         // If null, check if we have both positions
@@ -83,5 +92,17 @@ public class PlayerListener extends ShiftListener {
             case "pos1" -> cuboid.setFirst(new Vector3d(lookingAt.getBlockX(), lookingAt.getBlockY(), lookingAt.getBlockZ()));
             case "pos2" -> cuboid.setSecond(new Vector3d(lookingAt.getBlockX(), lookingAt.getBlockY(), lookingAt.getBlockZ()));
         }
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        var player = event.getPlayer();
+        if (player.hasPlayedBefore()) return;
+
+        userService.save(new UserData(
+                player.getUniqueId(),
+                100,
+                32 * 32 * 32
+        )).subscribe();
     }
 }

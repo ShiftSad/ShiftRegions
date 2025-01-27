@@ -15,13 +15,16 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import it.unimi.dsi.fastutil.Pair;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.joml.Vector3d;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +37,7 @@ public class RegionCommand {
 
     private final RegionService regionService;
     private final UserService userService;
+    private final JavaPlugin plugin;
 
     /**
      * <pre>
@@ -46,9 +50,10 @@ public class RegionCommand {
      *     - wand
      * }
      **/
-    public RegionCommand(RegionService regionService, UserService userService) {
+    public RegionCommand(RegionService regionService, UserService userService, JavaPlugin plugin) {
         this.regionService = regionService;
         this.userService = userService;
+        this.plugin = plugin;
     }
 
     public final LiteralCommandNode<CommandSourceStack> root = Commands.literal("region")
@@ -73,49 +78,57 @@ public class RegionCommand {
         var pos1 = pdc.get(new NamespacedKey("regions", "pos1"), PersistentDataType.INTEGER_ARRAY);
         var pos2 = pdc.get(new NamespacedKey("regions", "pos2"), PersistentDataType.INTEGER_ARRAY);
 
+        assert pos1 != null;
+        assert pos2 != null;
+        var cuboid = new Cuboid(
+                Pair.of(new Vector3d(pos1[0], pos1[1], pos1[2]),
+                        new Vector3d(pos2[0], pos2[1], pos2[2]))
+        );
+
         userService.findByUUID(player.getUniqueId())
                 .switchIfEmpty(Mono.defer(() -> {
                     player.sendMessage("Failed loading user data, try logging in again");
                     return Mono.empty();
                 }))
                 .flatMap(user -> {
-                    assert pos1 != null;
-                    assert pos2 != null;
-                    var cuboid = new Cuboid(
-                            Pair.of(new Vector3d(pos1[0], pos1[1], pos1[2]),
-                                    new Vector3d(pos2[0], pos2[1], pos2[2]))
-                    );
                     if (cuboid.getVolume() > user.blockClaims()) {
                         player.sendMessage("You have reached the maximum amount of blocks you can claim by "
                                 + (cuboid.getVolume() - user.blockClaims()));
                         return Mono.empty();
                     }
 
-                    var region = new Region(
-                            UUID.randomUUID(),
-                            MathUtils.toBlockVector(cuboid.getFirst()),
-                            MathUtils.toBlockVector(cuboid.getSecond()),
-                            player.getUniqueId(),
-                            List.of(),
-                            Flag.NONE.getBit()
-                    );
-
-                    return regionService.save(region);
+                    // Update user's block claims and save the region
+                    var updatedUser = user.setBlockClaims(user.blockClaims() - cuboid.getVolume());
+                    return userService.updateUser(updatedUser)
+                            .then(Mono.defer(() -> {
+                                var region = new Region(
+                                        UUID.randomUUID(),
+                                        MathUtils.toBlockVector(cuboid.getFirst()),
+                                        MathUtils.toBlockVector(cuboid.getSecond()),
+                                        player.getUniqueId(),
+                                        List.of(),
+                                        Flag.NONE.getBit()
+                                );
+                                return regionService.save(region);
+                            }));
                 })
                 .doOnSuccess(region -> {
                     if (region != null) {
                         player.sendMessage("Region created successfully");
 
+                        // Clear selection and remove persistent data
                         pdc.remove(new NamespacedKey("regions", "pos1"));
                         pdc.remove(new NamespacedKey("regions", "pos2"));
-                        PlayerListener.clearSelection(player.getUniqueId());
+
+                        // Can only be done async
+                        Bukkit.getScheduler().runTask(plugin, () -> PlayerListener.clearSelection(player.getUniqueId()));
                     }
                 })
-                .subscribe(
-                        unused -> {},
-                        throwable -> player.sendMessage("An error occurred while creating the region: "
-                                + throwable.getMessage())
-                );
+                .doOnError(throwable -> player.sendMessage("An error occurred while creating the region: "
+                        + throwable.getMessage()))
+                .subscribeOn(Schedulers.boundedElastic()) // Offload to a non-blocking thread
+                .subscribe();
+
 
         return Command.SINGLE_SUCCESS;
     }

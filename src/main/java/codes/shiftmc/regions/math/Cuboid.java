@@ -148,6 +148,7 @@ public class Cuboid {
      * Dispose of the lines, object can no longer be reused.
      */
     public void dispose() {
+        if (lines == null) return;
         for (Line line : lines) {
             line.dispose();
             this.lines = null;
