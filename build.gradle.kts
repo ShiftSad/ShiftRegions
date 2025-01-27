@@ -14,6 +14,9 @@ repositories {
     maven("https://oss.sonatype.org/content/groups/public/") {
         name = "sonatype"
     }
+    maven("https://repo.xenondevs.xyz/releases") {
+        name = "xenondevs"
+    }
 }
 
 dependencies {
@@ -22,6 +25,7 @@ dependencies {
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.0")
     compileOnly("io.projectreactor:reactor-core:3.7.2")
     compileOnly("io.vertx:vertx-mysql-client:4.5.12")
+    compileOnly("xyz.xenondevs.invui:invui:2.0.0-alpha.7")
 }
 
 tasks {
