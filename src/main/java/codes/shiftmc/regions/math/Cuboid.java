@@ -9,7 +9,7 @@ public class Cuboid {
     private final Vector3d first;
     private final Vector3d second;
 
-    private Line[] lines = new Line[12];
+    private Line[] lines;
 
     public Cuboid(Pair<Vector3d, Vector3d> pair) {
         this.first = pair.first();
@@ -33,6 +33,7 @@ public class Cuboid {
      * This is only called once, in the constructor.
      */
     private void initializeLines() {
+        lines = new Line[12];
         lines[0] = new Line(
                 new Vector3d(first),
                 new Vector3d(first.x, first.y, second.z)
@@ -43,7 +44,7 @@ public class Cuboid {
         );
         lines[2] = new Line(
                 new Vector3d(first),
-                new Vector3d(second.x, first.y, first.z)
+                new Vector3d(second.x + 1, first.y, first.z)
         );
         lines[3] = new Line(
                 new Vector3d(first.x, second.y, second.z),
@@ -137,6 +138,7 @@ public class Cuboid {
      * Spawns (or re-spawns) each line's display if needed and positions it.
      */
     public void render(World world) {
+        updateLines();
         for (Line line : lines) {
             line.render(world);
         }

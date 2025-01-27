@@ -2,6 +2,7 @@ package codes.shiftmc.regions;
 
 import codes.shiftmc.regions.commands.RegionCommand;
 import codes.shiftmc.regions.configuration.DataSource;
+import codes.shiftmc.regions.listener.PlayerListener;
 import codes.shiftmc.regions.repository.RegionRepository;
 import codes.shiftmc.regions.repository.UserRepository;
 import codes.shiftmc.regions.repository.impl.MySQLRegionRepository;
@@ -34,6 +35,9 @@ public final class ShiftRegions extends JavaPlugin {
             var region = new RegionCommand(regionService, userService);
             commands.registrar().register(region.root);
         });
+
+        // Register Player Listener
+        new PlayerListener(this);
     }
 
     private void loadConfiguration() {
