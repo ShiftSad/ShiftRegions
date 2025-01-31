@@ -1,4 +1,4 @@
-package codes.shiftmc.regions.menus;
+package codes.shiftmc.regions.menus.members;
 
 import codes.shiftmc.regions.model.Region;
 import codes.shiftmc.regions.service.RegionService;
@@ -11,8 +11,6 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import xyz.xenondevs.invui.gui.Gui;
-import xyz.xenondevs.invui.gui.PagedGui;
 import xyz.xenondevs.invui.item.AbstractItem;
 import xyz.xenondevs.invui.item.Click;
 import xyz.xenondevs.invui.item.ItemBuilder;

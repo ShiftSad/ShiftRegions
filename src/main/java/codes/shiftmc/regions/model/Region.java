@@ -3,6 +3,7 @@ package codes.shiftmc.regions.model;
 import codes.shiftmc.regions.math.BlockVector;
 import it.unimi.dsi.fastutil.Pair;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,16 +40,26 @@ public class Region {
         max = new BlockVector(maxX, maxY, maxZ);
     }
 
-    protected void addFlag(Flag flag) {
+    public void addFlag(Flag flag) {
         flags |= flag.getBit();
     }
 
-    protected void removeFlag(Flag flag) {
+    public void removeFlag(Flag flag) {
         flags &= ~flag.getBit();
     }
 
-    protected boolean hasFlag(Flag flag) {
+    public boolean hasFlag(Flag flag) {
         return (flags & flag.getBit()) != 0;
+    }
+
+    public List<Flag> getFlags() {
+        List<Flag> flags = new ArrayList<>();
+        for (Flag flag : Flag.values()) {
+            if (hasFlag(flag)) {
+                flags.add(flag);
+            }
+        }
+        return flags;
     }
 
     // I miss lombok :(

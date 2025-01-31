@@ -3,7 +3,8 @@ package codes.shiftmc.regions.commands;
 import codes.shiftmc.regions.listener.PlayerListener;
 import codes.shiftmc.regions.math.Cuboid;
 import codes.shiftmc.regions.math.MathUtils;
-import codes.shiftmc.regions.menus.ManageMembers;
+import codes.shiftmc.regions.menus.ManageFlags;
+import codes.shiftmc.regions.menus.members.ManageMembers;
 import codes.shiftmc.regions.model.Flag;
 import codes.shiftmc.regions.model.Region;
 import codes.shiftmc.regions.service.RegionService;
@@ -162,6 +163,23 @@ public class RegionCommand {
     }
 
     private int flags(CommandContext<CommandSourceStack> ctx) {
+        Player player = getPlayer(ctx);
+        if (player == null) return Command.SINGLE_SUCCESS;
+
+        var location = player.getLocation();
+        var regionOpt = regionService.findByLocation(
+                location.getBlockX(),
+                location.getBlockY(),
+                location.getBlockZ()
+        );
+
+        if (regionOpt.isEmpty()) {
+            player.sendMessage("No region found at your location");
+            return Command.SINGLE_SUCCESS;
+        }
+
+        var region = regionOpt.get();
+        new ManageFlags(region, regionService, player);
         return Command.SINGLE_SUCCESS;
     }
 

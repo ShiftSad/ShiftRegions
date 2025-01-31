@@ -3,6 +3,8 @@ package codes.shiftmc.regions;
 import codes.shiftmc.regions.commands.RegionCommand;
 import codes.shiftmc.regions.configuration.DataSource;
 import codes.shiftmc.regions.listener.PlayerListener;
+import codes.shiftmc.regions.listener.flags.BlocksFlagListener;
+import codes.shiftmc.regions.listener.flags.PVPFlagListener;
 import codes.shiftmc.regions.repository.RegionRepository;
 import codes.shiftmc.regions.repository.UserRepository;
 import codes.shiftmc.regions.repository.impl.MySQLRegionRepository;
@@ -36,8 +38,9 @@ public final class ShiftRegions extends JavaPlugin {
             commands.registrar().register(region.root);
         });
 
-        // Register Player Listener
         new PlayerListener(this, userService);
+        new BlocksFlagListener(this, regionService);
+        new PVPFlagListener(this, regionService);
     }
 
     private void loadConfiguration() {

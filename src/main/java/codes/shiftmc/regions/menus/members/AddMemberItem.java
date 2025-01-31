@@ -1,8 +1,7 @@
-package codes.shiftmc.regions.menus;
+package codes.shiftmc.regions.menus.members;
 
 import codes.shiftmc.regions.model.Flag;
 import codes.shiftmc.regions.model.Region;
-import codes.shiftmc.regions.repository.RegionRepository;
 import codes.shiftmc.regions.service.RegionService;
 import it.unimi.dsi.fastutil.Pair;
 import net.kyori.adventure.text.Component;
@@ -13,13 +12,11 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import xyz.xenondevs.invui.gui.Gui;
-import xyz.xenondevs.invui.internal.AnvilInventory;
 import xyz.xenondevs.invui.item.AbstractItem;
 import xyz.xenondevs.invui.item.Click;
 import xyz.xenondevs.invui.item.ItemProvider;
 import xyz.xenondevs.invui.item.ItemWrapper;
 import xyz.xenondevs.invui.window.AnvilWindow;
-import xyz.xenondevs.invui.window.Window;
 
 import java.util.HashMap;
 import java.util.UUID;

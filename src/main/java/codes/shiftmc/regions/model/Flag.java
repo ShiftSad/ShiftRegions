@@ -1,15 +1,15 @@
 package codes.shiftmc.regions.model;
 
 public enum Flag {
-    NONE(0),
-    PVP(1),
-    BLOCK_BREAK(2),
-    BLOCK_PLACE(4),
-    INTERACT(8);
+    NONE(0, false),
+    PVP(1, false),
+    BLOCK_BREAK(2, true),
+    BLOCK_PLACE(4, true),
+    INTERACT(8, true);
 
     private final int bit;
 
-    Flag(int bit) {
+    Flag(int bit, boolean perPlayer) {
         this.bit = bit;
     }
 
@@ -23,5 +23,9 @@ public enum Flag {
             joined |= flag.getBit();
         }
         return joined;
+    }
+
+    public static boolean hasFlag(int flags, Flag flag) {
+        return (flags & flag.getBit()) != 0;
     }
 }

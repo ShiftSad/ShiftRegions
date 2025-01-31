@@ -1,4 +1,4 @@
-package codes.shiftmc.regions.menus;
+package codes.shiftmc.regions.menus.members;
 
 import codes.shiftmc.regions.model.Region;
 import codes.shiftmc.regions.service.RegionService;
