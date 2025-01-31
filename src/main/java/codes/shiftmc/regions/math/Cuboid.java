@@ -17,7 +17,7 @@ public class Cuboid {
     }
 
     public int getVolume() {
-        return (int) ((second.x - first.x) * (second.y - first.y) * (second.z - first.z));
+        return (int) Math.abs(((second.x - first.x) * (second.y - first.y) * (second.z - first.z)));
     }
 
     public Vector3d getFirst() {

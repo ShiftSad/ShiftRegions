@@ -27,62 +27,69 @@ public class MySQLRegionRepository implements RegionRepository {
     @Override
     public Mono<Void> createTable() {
         String createRegionsTable = """
-        CREATE TABLE IF NOT EXISTS regions (
-            id CHAR(36) PRIMARY KEY,
-            min_x INT NOT NULL,
-            min_y INT NOT NULL,
-            min_z INT NOT NULL,
-            max_x INT NOT NULL,
-            max_y INT NOT NULL,
-            max_z INT NOT NULL,
-            owner CHAR(36) NOT NULL,
-            flags INT NOT NULL DEFAULT 0
-        );
-    """;
+            CREATE TABLE IF NOT EXISTS regions (
+                id CHAR(36) PRIMARY KEY,
+                min_x INT NOT NULL,
+                min_y INT NOT NULL,
+                min_z INT NOT NULL,
+                max_x INT NOT NULL,
+                max_y INT NOT NULL,
+                max_z INT NOT NULL,
+                owner CHAR(36) NOT NULL,
+                flags INT NOT NULL DEFAULT 0
+            );
+        """;
 
+        // Example table for region members
         String createMembersTable = """
-        CREATE TABLE IF NOT EXISTS members (
-            region_id CHAR(36) NOT NULL,
-            member_id CHAR(36) NOT NULL,
-            value INT NOT NULL,
-            PRIMARY KEY (region_id, member_id),
-            FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE CASCADE
-        );
-    """;
+            CREATE TABLE IF NOT EXISTS region_members (
+                region_id CHAR(36) NOT NULL,
+                member_id CHAR(36) NOT NULL,
+                flags INT NOT NULL,
+                PRIMARY KEY (region_id, member_id),
+                FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE CASCADE
+            );
+        """;
 
         return Mono.create(sink ->
                 client.query(createRegionsTable).execute(ar -> {
-                    if (!ar.succeeded()) {
+                    if (ar.failed()) {
                         sink.error(ar.cause());
                         return;
                     }
                     client.query(createMembersTable).execute(ar2 -> {
-                        if (ar2.succeeded()) sink.success();
-                        else sink.error(ar2.cause());
+                        if (ar2.failed()) sink.error(ar2.cause());
+                        else sink.success();
                     });
                 })
         );
     }
 
     @Override
-    public Mono<Region> findByUUID(UUID uuid) {
-        return findRegionByField("id", uuid.toString());
+    public Flux<Region> findAll() {
+        String selectAllRegions = "SELECT * FROM regions";
+        return Mono.<RowSet<Row>>create(sink ->
+                        client.query(selectAllRegions).execute(ar -> {
+                            if (ar.failed()) {
+                                sink.error(ar.cause());
+                            } else {
+                                sink.success(ar.result());
+                            }
+                        })
+                )
+                .flatMapMany(Flux::fromIterable)
+                .flatMap(this::fetchRegion);
     }
 
     @Override
-    public Mono<Region> findByOwner(UUID uuid) {
-        return findRegionByField("owner", uuid.toString());
-    }
-
-    @Override
-    public Mono<Region> save(Region region) {
-        String regionQuery = """
+    public Mono<Void> save(Region region) {
+        String insertRegion = """
             INSERT INTO regions (id, min_x, min_y, min_z, max_x, max_y, max_z, owner, flags)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
         Mono<Void> insertRegionMono = Mono.create(sink -> {
-            client.preparedQuery(regionQuery)
+            client.preparedQuery(insertRegion)
                     .execute(
                             Tuple.of(
                                     region.id().toString(),
@@ -96,41 +103,6 @@ public class MySQLRegionRepository implements RegionRepository {
                                     region.flags()
                             ),
                             ar -> {
-                                if (ar.succeeded()) sink.success();
-                                else sink.error(ar.cause());
-                            }
-                    );
-        });
-
-        // First insert the region, then insert members, then return region
-        return insertRegionMono
-                .then(saveRegionMembers(region.id(), region.members()))
-                .thenReturn(region);
-    }
-
-    @Override
-    public Mono<Region> updateRegion(Region region) {
-        String regionQuery = """
-            UPDATE regions
-            SET min_x = ?, min_y = ?, min_z = ?, max_x = ?, max_y = ?, max_z = ?, owner = ?, flags = ?
-            WHERE id = ?
-        """;
-
-        Mono<Void> updateRegionMono = Mono.create(sink -> {
-            client.preparedQuery(regionQuery)
-                    .execute(
-                            Tuple.of(
-                                    region.min().x(),
-                                    region.min().y(),
-                                    region.min().z(),
-                                    region.max().x(),
-                                    region.max().y(),
-                                    region.max().z(),
-                                    region.owner().toString(),
-                                    region.flags(),
-                                    region.id().toString()
-                            ),
-                            ar -> {
                                 if (ar.succeeded()) {
                                     sink.success();
                                 } else {
@@ -140,23 +112,132 @@ public class MySQLRegionRepository implements RegionRepository {
                     );
         });
 
-        // First update the region, then delete members, then re-insert new members, then return region
-        return updateRegionMono
-                .then(deleteRegionMembers(region.id()))
+        return insertRegionMono
                 .then(saveRegionMembers(region.id(), region.members()))
-                .thenReturn(region);
+                .then();
     }
 
+    @Override
+    public Mono<Void> delete(UUID uuid) {
+        String deleteRegionQuery = "DELETE FROM regions WHERE id = ?";
+        String deleteMembersQuery = "DELETE FROM region_members WHERE region_id = ?";
+
+        return Mono.create(sink -> {
+            client.preparedQuery(deleteRegionQuery)
+                    .execute(Tuple.of(uuid.toString()), ar -> {
+                        if (ar.succeeded()) {
+                            sink.success();
+                        } else {
+                            sink.error(ar.cause());
+                        }
+                    });
+        }).then(Mono.create(sink -> {
+            client.preparedQuery(deleteMembersQuery)
+                    .execute(Tuple.of(uuid.toString()), ar -> {
+                        if (ar.succeeded()) {
+                            sink.success();
+                        } else {
+                            sink.error(ar.cause());
+                        }
+                    });
+        }));
+    }
+
+    @Override
+    public Mono<Void> saveAll(List<Region> regions) {
+        if (regions.isEmpty()) {
+            return Mono.empty(); // no regions => no inserts
+        }
+
+        StringBuilder queryRegion = new StringBuilder("INSERT INTO regions (id, min_x, min_y, min_z, max_x, max_y, max_z, owner, flags) VALUES ");
+        List<Object> allParameters = new ArrayList<>();
+        for (int i = 0; i < regions.size(); i++) {
+            queryRegion.append("(?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            if (i < regions.size() - 1) {
+                queryRegion.append(", ");
+            }
+        }
+
+        for (Region region : regions) {
+            allParameters.add(region.id().toString());
+            allParameters.add(region.min().x());
+            allParameters.add(region.min().y());
+            allParameters.add(region.min().z());
+            allParameters.add(region.max().x());
+            allParameters.add(region.max().y());
+            allParameters.add(region.max().z());
+            allParameters.add(region.owner().toString());
+            allParameters.add(region.flags());
+        }
+
+        // Insert all regions
+        Mono<Void> insertRegionsMono = Mono.create(sink -> {
+            client.preparedQuery(queryRegion.toString())
+                    .execute(Tuple.wrap(allParameters.toArray()), ar -> {
+                        if (ar.succeeded()) {
+                            sink.success();
+                        } else {
+                            sink.error(ar.cause());
+                        }
+                    });
+        });
+
+        // Insert all region members
+        List<Tuple> memberTuples = new ArrayList<>();
+        for (Region region : regions) {
+            if (region.members().isEmpty()) continue;
+
+            for (Pair<UUID, Integer> member : region.members()) {
+                memberTuples.add(Tuple.of(region.id().toString(), member.first().toString(), member.second()));
+            }
+        }
+
+        if (memberTuples.isEmpty()) return insertRegionsMono;
+
+        StringBuilder queryMember = new StringBuilder(
+                "INSERT INTO region_members (region_id, member_id, flags) VALUES "
+        );
+        for (int i = 0; i < memberTuples.size(); i++) {
+            queryMember.append("(?, ?, ?)");
+            if (i < memberTuples.size() - 1) {
+                queryMember.append(", ");
+            }
+        }
+
+        Mono<Void> insertMembersMono = Mono.create(sink -> {
+            client.preparedQuery(queryMember.toString())
+                    .execute(Tuple.wrap(memberTuples.toArray()), ar -> {
+                        if (ar.succeeded()) {
+                            sink.success();
+                        } else {
+                            sink.error(ar.cause());
+                        }
+                    });
+        });
+
+        return insertRegionsMono
+                .then(insertMembersMono);
+    }
+
+    /**
+     * Given a Row from 'regions', fetch members and return a Mono<Region>.
+     */
+    private Mono<Region> fetchRegion(Row row) {
+        return Mono.create(sink -> fetchMembersAndCompleteRegion(row, sink));
+    }
+
+    /**
+     * Insert (region_id, member_id, flags) into region_members for each member.
+     */
     private Mono<Void> saveRegionMembers(UUID regionId, List<Pair<UUID, Integer>> members) {
         if (members.isEmpty()) {
-            // If no members, return an already completed Mono
-            return Mono.empty();
+            return Mono.empty(); // no members => no inserts
         }
 
         String memberQuery = """
-        INSERT INTO region_members (region_id, member_id, flags)
-        VALUES (?, ?, ?)
-    """;
+            INSERT INTO region_members (region_id, member_id, flags)
+            VALUES (?, ?, ?)
+        """;
 
         return Flux.fromIterable(members)
                 .flatMap(member -> Mono.create(sink -> {
@@ -173,132 +254,12 @@ public class MySQLRegionRepository implements RegionRepository {
                                     }
                             );
                 }))
-                .then();
-    }
-
-    private Mono<Void> deleteRegionMembers(UUID regionId) {
-        String deleteMembersQuery = "DELETE FROM region_members WHERE region_id = ?";
-
-        return Mono.create(sink -> {
-            client.preparedQuery(deleteMembersQuery)
-                    .execute(Tuple.of(regionId.toString()), ar -> {
-                        if (ar.succeeded()) sink.success();
-                        else sink.error(ar.cause());
-                    });
-        });
-    }
-
-    private Mono<Region> findRegionByField(String fieldName, String value) {
-        String regionQuery = "SELECT * FROM regions WHERE " + fieldName + " = ?";
-
-        return Mono.create(sink ->
-                client.preparedQuery(regionQuery).execute(Tuple.of(value), ar -> {
-                    if (!ar.succeeded()) {
-                        sink.error(ar.cause());
-                        return;
-                    }
-
-                    RowSet<Row> rows = ar.result();
-                    if (rows.size() == 0) {
-                        sink.success(null);
-                        return;
-                    }
-
-                    Row regionRow = rows.iterator().next();
-                    fetchMembersAndCompleteRegion(regionRow, sink);
-                })
-        );
+                .then(); // completes when all inserts finish
     }
 
     /**
-     * Find the first Region that contains the coordinates (x,y,z).
-     * If none found, returns null.
+     * Fetch all members for a given region row, build a Region object, and complete the Mono sink.
      */
-    @Override
-    public Mono<Region> findByLocation(int x, int y, int z) {
-        // Query that finds a region whose bounding box encloses (x, y, z).
-        // If multiple match, return the first. (You may want to remove LIMIT 1 if you expect multiple.)
-        String query = """
-            SELECT * FROM regions
-            WHERE min_x <= ? AND max_x >= ?
-              AND min_y <= ? AND max_y >= ?
-              AND min_z <= ? AND max_z >= ?
-            LIMIT 1
-        """;
-
-        // We'll do the same "fetch region + members" pattern
-        return Mono.create(sink ->
-                client.preparedQuery(query).execute(Tuple.of(x, x, y, y, z, z), ar -> {
-                    if (ar.failed()) {
-                        sink.error(ar.cause());
-                        return;
-                    }
-
-                    RowSet<Row> rows = ar.result();
-                    if (!rows.iterator().hasNext()) {
-                        // No region found
-                        sink.success(null);
-                        return;
-                    }
-
-                    Row regionRow = rows.iterator().next();
-                    fetchMembersAndCompleteRegion(regionRow, sink);
-                })
-        );
-    }
-
-    /**
-     * Check if any region intersects the bounding box
-     * defined by 'first' and 'second'.
-     */
-    @Override
-    public Mono<Boolean> checkCollision(BlockVector first, BlockVector second) {
-        // Determine bounding box (minX <= maxX, etc.)
-        int minX = Math.min(first.x(), second.x());
-        int minY = Math.min(first.y(), second.y());
-        int minZ = Math.min(first.z(), second.z());
-        int maxX = Math.max(first.x(), second.x());
-        int maxY = Math.max(first.y(), second.y());
-        int maxZ = Math.max(first.z(), second.z());
-
-        String query = """
-            SELECT 1
-            FROM regions
-            WHERE
-                min_x <= ? AND max_x >= ?
-                AND min_y <= ? AND max_y >= ?
-                AND min_z <= ? AND max_z >= ?
-            LIMIT 1
-        """;
-
-        return Mono.create(sink ->
-                client.preparedQuery(query)
-                        .execute(Tuple.of(maxX, minX, maxY, minY, maxZ, minZ), ar -> {
-                            if (ar.failed()) {
-                                sink.error(ar.cause());
-                                return;
-                            }
-
-                            RowSet<Row> rows = ar.result();
-                            // If we have at least 1 row, there's an intersection
-                            if (rows.iterator().hasNext()) sink.success(true);
-                            else sink.success(false);
-                        })
-        );
-    }
-
-    @Override
-    public Mono<Void> deleteRegion(UUID uuid) {
-        String deleteRegionQuery = "DELETE FROM regions WHERE id = ?";
-        return Mono.create(sink -> {
-            client.preparedQuery(deleteRegionQuery)
-                    .execute(Tuple.of(uuid.toString()), ar -> {
-                        if (ar.succeeded()) sink.success();
-                        else sink.error(ar.cause());
-                    });
-        });
-    }
-
     private void fetchMembersAndCompleteRegion(Row regionRow, MonoSink<Region> sink) {
         UUID regionId = UUID.fromString(regionRow.getString("id"));
         String memberQuery = "SELECT member_id, flags FROM region_members WHERE region_id = ?";
@@ -322,6 +283,9 @@ public class MySQLRegionRepository implements RegionRepository {
                 });
     }
 
+    /**
+     * Convert a Row into a Region object, given its row data and a member list.
+     */
     private Region mapRowToRegion(Row row, List<Pair<UUID, Integer>> members) {
         UUID id = UUID.fromString(row.getString("id"));
         BlockVector min = new BlockVector(
@@ -336,6 +300,7 @@ public class MySQLRegionRepository implements RegionRepository {
         );
         UUID owner = UUID.fromString(row.getString("owner"));
         int flags = row.getInteger("flags");
+
         return new Region(id, min, max, owner, members, flags);
     }
 }

@@ -3,21 +3,19 @@ package codes.shiftmc.regions.service;
 import codes.shiftmc.regions.math.BlockVector;
 import codes.shiftmc.regions.model.Region;
 import codes.shiftmc.regions.repository.RegionRepository;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import reactor.core.publisher.Mono;
 
+import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class RegionService {
 
     private final RegionRepository regionRepository;
-    private final Cache<UUID, Region> regionCache;
+    private final HashMap<UUID, Region> regionCache;
 
     public RegionService(RegionRepository regionRepository) {
         this.regionRepository = regionRepository;
-        this.regionCache = Caffeine.newBuilder().build();
+        this.regionCache = new HashMap<>();
         createTable().subscribe();
     }
 
@@ -57,6 +55,7 @@ public class RegionService {
      * Check cached regions first; if no match, query the database and update the cache.
      */
     public Mono<Region> findByLocation(int x, int y, int z) {
+        System.out.println("Cached Regions: " + regionCache.asMap().keySet());
         for (Region region : regionCache.asMap().values()) {
             if (isPointInsideRegion(region, x, y, z)) return Mono.just(region);
         }
@@ -88,10 +87,17 @@ public class RegionService {
         BlockVector regionMin = region.min();
         BlockVector regionMax = region.max();
 
-        // Check intersection conditions for two axis-aligned bounding boxes (AABB)
-        return regionMin.x() <= maxX && regionMax.x() >= minX
+        System.out.printf("Checking region [%s] with bounds (%d,%d,%d) -> (%d,%d,%d) against point (%d,%d,%d)\n",
+                region.id(), regionMin.x(), regionMin.y(), regionMin.z(),
+                regionMax.x(), regionMax.y(), regionMax.z(),
+                first.x(), first.y(), first.z());
+
+        boolean intersects = regionMin.x() <= maxX && regionMax.x() >= minX
                 && regionMin.y() <= maxY && regionMax.y() >= minY
                 && regionMin.z() <= maxZ && regionMax.z() >= minZ;
+
+        System.out.println("Intersection result: " + intersects);
+        return intersects;
     }
 
     public Mono<Region> findByOwner(UUID ownerUuid) {
