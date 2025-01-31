@@ -10,12 +10,14 @@ import codes.shiftmc.regions.model.Region;
 import codes.shiftmc.regions.service.RegionService;
 import codes.shiftmc.regions.service.UserService;
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import it.unimi.dsi.fastutil.Pair;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -39,6 +41,7 @@ public class RegionCommand {
     private final RegionService regionService;
     private final UserService userService;
     private final JavaPlugin plugin;
+    private final Economy economy;
 
     /**
      * <pre>
@@ -51,10 +54,11 @@ public class RegionCommand {
      *     - wand
      * }
      **/
-    public RegionCommand(RegionService regionService, UserService userService, JavaPlugin plugin) {
+    public RegionCommand(RegionService regionService, UserService userService, JavaPlugin plugin, Economy economy) {
         this.regionService = regionService;
         this.userService = userService;
         this.plugin = plugin;
+        this.economy = economy;
     }
 
     public final LiteralCommandNode<CommandSourceStack> root = Commands.literal("region")
@@ -63,6 +67,7 @@ public class RegionCommand {
             .then(Commands.literal("flags").executes(this::flags))
             .then(Commands.literal("members").executes(this::members))
             .then(Commands.literal("wand").executes(this::wand))
+            .then(Commands.literal("buy").then(Commands.argument("amount", IntegerArgumentType.integer())).executes(this::buy))
             .build();
 
     private int create(CommandContext<CommandSourceStack> ctx) {
@@ -223,6 +228,36 @@ public class RegionCommand {
         var inventory = player.getInventory();
         inventory.addItem(item);
 
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int buy(CommandContext<CommandSourceStack> ctx) {
+        var player = getPlayer(ctx);
+        if (player == null) return Command.SINGLE_SUCCESS;
+
+        var amount = IntegerArgumentType.getInteger(ctx, "amount");
+        // Buy claim blocks
+        var price = plugin.getConfig().getDouble("settings.claim_block_price");
+        var total = price * amount;
+
+        if (economy.getBalance(player) < total) {
+            player.sendMessage("You do not have enough money to buy " + amount + " claim blocks");
+            return Command.SINGLE_SUCCESS;
+        }
+
+        userService.findByUUID(player.getUniqueId())
+                .flatMap(user -> {
+                    if ((user.blockClaims() + amount) > user.maxBlockClaims()) {
+                        player.sendMessage("You have reached the maximum amount of claim blocks you can have");
+                        return Mono.empty();
+                    }
+                    Bukkit.getScheduler().runTask(plugin, () -> economy.withdrawPlayer(player, total));
+                    var updatedUser = user.setBlockClaims(user.blockClaims() + amount);
+                    return userService.updateUser(updatedUser);
+                })
+                .subscribe();
+
+        player.sendMessage("You have bought " + amount + " claim blocks for " + total);
         return Command.SINGLE_SUCCESS;
     }
 

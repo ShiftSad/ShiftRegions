@@ -12,12 +12,15 @@ import codes.shiftmc.regions.repository.impl.MySQLUserRepository;
 import codes.shiftmc.regions.service.RegionService;
 import codes.shiftmc.regions.service.UserService;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+import net.milkbowl.vault.economy.Economy;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 // By now, I should probably know what I'm doing
 @SuppressWarnings("UnstableApiUsage")
 public final class ShiftRegions extends JavaPlugin {
 
+    private Economy econ = null;
     private RegionRepository regionRepository;
     private UserRepository userRepository;
 
@@ -38,6 +41,8 @@ public final class ShiftRegions extends JavaPlugin {
             commands.registrar().register(region.root);
         });
 
+        setupEconomy();
+
         new PlayerListener(this, userService);
         new BlocksFlagListener(this, regionService);
         new PVPFlagListener(this, regionService);
@@ -56,5 +61,17 @@ public final class ShiftRegions extends JavaPlugin {
         DataSource.getClient(dataSource);
         regionRepository = new MySQLRegionRepository(DataSource.getClient());
         userRepository = new MySQLUserRepository(DataSource.getClient());
+    }
+
+    private boolean setupEconomy() {
+        if (getServer().getPluginManager().getPlugin("Vault") == null) {
+            return false;
+        }
+        RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
+        if (rsp == null) {
+            return false;
+        }
+        econ = rsp.getProvider();
+        return econ != null;
     }
 }

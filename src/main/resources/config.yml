@@ -11,3 +11,5 @@ settings:
     reconnectAttempts: 3
     reconnectInterval: 1000
     maxPoolSize: 10
+
+  claim_block_price: 1.0

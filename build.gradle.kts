@@ -18,6 +18,9 @@ repositories {
     maven("https://repo.xenondevs.xyz/releases") {
         name = "xenondevs"
     }
+    maven("https://jitpack.io") {
+        name = "jitpack"
+    }
 }
 
 dependencies {
@@ -26,6 +29,7 @@ dependencies {
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.0")
     compileOnly("io.projectreactor:reactor-core:3.7.2")
     compileOnly("io.vertx:vertx-mysql-client:4.5.12")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7")
 
     implementation("xyz.xenondevs.invui:invui:2.0.0-alpha.7")
 }
