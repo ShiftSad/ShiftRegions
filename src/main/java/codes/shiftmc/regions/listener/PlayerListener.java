@@ -50,7 +50,7 @@ public class PlayerListener extends ShiftListener {
     public void onInteract(PlayerInteractEvent event) {
         var player = event.getPlayer();
         var action = event.getAction();
-        var lookingAt = player.getTargetBlock(null, 5).getLocation();
+        var lookingAt = player.getTargetBlock(null, 30).getLocation();
         var item = player.getInventory().getItemInMainHand();
 
         var meta = item.getItemMeta();
