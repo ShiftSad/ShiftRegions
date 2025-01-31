@@ -20,11 +20,11 @@ public class Region {
 
     public Region(UUID id, BlockVector min, BlockVector max, UUID owner, List<Pair<UUID, Integer>> members, int flags) {
         this.id = id;
-        this.min = min;
-        this.max = max;
         this.owner = owner;
         this.members = members;
         this.flags = flags;
+
+        setMinMaxPoints(Pair.of(min, max));
     }
 
     protected void setMinMaxPoints(Pair<BlockVector, BlockVector> points) {
@@ -71,7 +71,7 @@ public class Region {
     }
 
     public Region setMin(BlockVector min) {
-        this.min = min;
+        setMinMaxPoints(Pair.of(min, max));
         return this;
     }
 
@@ -80,7 +80,7 @@ public class Region {
     }
 
     public Region setMax(BlockVector max) {
-        this.max = max;
+        setMinMaxPoints(Pair.of(min, max));
         return this;
     }
 

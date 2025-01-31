@@ -3,6 +3,8 @@ package codes.shiftmc.regions.service;
 import codes.shiftmc.regions.math.BlockVector;
 import codes.shiftmc.regions.model.Region;
 import codes.shiftmc.regions.repository.RegionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
@@ -12,8 +14,11 @@ import java.util.UUID;
 
 public class RegionService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(RegionService.class);
+
     private final RegionRepository regionRepository;
     private final HashMap<UUID, Region> regionCache;
+
 
     public RegionService(RegionRepository regionRepository) {
         this.regionRepository = regionRepository;
@@ -25,7 +30,7 @@ public class RegionService {
         regionRepository.findAll().all(region -> {
             regionCache.put(region.id(), region);
             return true;
-        }).then().doOnTerminate(() -> System.out.println("Region cache initialized")).block();
+        }).then().doOnTerminate(() -> LOGGER.info("Region cache initialized")).block();
     }
 
     private Mono<Void> createTable() {

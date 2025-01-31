@@ -13,6 +13,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.persistence.PersistentDataType;
 import org.joml.Vector3d;
+import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -97,12 +98,14 @@ public class PlayerListener extends ShiftListener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         var player = event.getPlayer();
-        if (player.hasPlayedBefore()) return;
 
-        userService.save(new UserData(
-                player.getUniqueId(),
-                100,
-                32 * 32 * 32
-        )).subscribe();
+        // Check if the user is already in the database non-blocking
+        userService.findByUUID(player.getUniqueId())
+                .switchIfEmpty(Mono.defer(() -> userService.save(new UserData(
+                        player.getUniqueId(),
+                        100,
+                        32 * 32 * 32
+                ))))
+                .subscribe();
     }
 }
