@@ -46,7 +46,7 @@ public class MySQLRegionRepository implements RegionRepository {
                 region_id CHAR(36) NOT NULL,
                 member_id CHAR(36) NOT NULL,
                 flags INT NOT NULL,
-                PRIMARY KEY (region_id, member_id),
+                PRIMARY KEY (region_id),
                 FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE CASCADE
             );
         """;
