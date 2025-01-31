@@ -109,7 +109,7 @@ public class RegionCommand {
                                         List.of(),
                                         Flag.NONE.getBit()
                                 );
-                                return regionService.save(region);
+                                return regionService.save(region, false);
                             }));
                 })
                 .doOnSuccess(region -> {
@@ -134,36 +134,30 @@ public class RegionCommand {
     }
 
     private int delete(CommandContext<CommandSourceStack> ctx) {
-        var player = getPlayer(ctx);
-        if (player == null) {
+        Player player = getPlayer(ctx);
+        if (player == null) return Command.SINGLE_SUCCESS;
+
+        var location = player.getLocation();
+        var regionOpt = regionService.findByLocation(
+                location.getBlockX(),
+                location.getBlockY(),
+                location.getBlockZ()
+        );
+
+        if (regionOpt.isEmpty()) {
+            player.sendMessage("No region found at your location");
             return Command.SINGLE_SUCCESS;
         }
 
-        var location = player.getLocation();
+        var region = regionOpt.get();
+        if (!region.owner().equals(player.getUniqueId())) {
+            player.sendMessage("You do not own this region");
+            return Command.SINGLE_SUCCESS;
+        }
 
-        regionService.findByLocation(location.getBlockX(), location.getBlockY(), location.getBlockZ())
-                .switchIfEmpty(Mono.defer(() -> {
-                    player.sendMessage("No region found at your location");
-                    return Mono.empty();
-                }))
-                .flatMap(region -> {
-                    if (!region.owner().equals(player.getUniqueId())) {
-                        player.sendMessage("You do not own this region");
-                        return Mono.empty();
-                    }
+        regionService.deleteRegion(region.id());
+        player.sendMessage("Region deleted successfully");
 
-                    player.sendMessage("Region deleted successfully");
-                    regionService.deleteRegion(region.id());
-
-                    return Mono.empty();
-                })
-                .subscribe(
-                        unused -> {},
-                        throwable -> player.sendMessage("An error occurred while deleting the region: "
-                                + throwable.getMessage())
-                );
-
-        // Return immediately (non-blocking). The reactive chain runs in the background.
         return Command.SINGLE_SUCCESS;
     }
 
@@ -172,24 +166,23 @@ public class RegionCommand {
     }
 
     private int members(CommandContext<CommandSourceStack> ctx) {
-        var player = getPlayer(ctx);
+        Player player = getPlayer(ctx);
         if (player == null) return Command.SINGLE_SUCCESS;
-        var location = player.getLocation();
 
-        regionService.findByLocation(location.getBlockX(), location.getBlockY(), location.getBlockZ())
-                .switchIfEmpty(Mono.defer(() -> {
-                    player.sendMessage("No region found at your location");
-                    return Mono.empty();
-                }))
-                .flatMap(region -> {
-                    new ManageMembers(region, player);
-                    return Mono.empty();
-                })
-                .subscribe(
-                        unused -> {},
-                        throwable -> player.sendMessage("An error occorred getting information about the region you are in: "
-                                                                  + throwable.getMessage())
-                );
+        var location = player.getLocation();
+        var regionOpt = regionService.findByLocation(
+                location.getBlockX(),
+                location.getBlockY(),
+                location.getBlockZ()
+        );
+
+        if (regionOpt.isEmpty()) {
+            player.sendMessage("No region found at your location");
+            return Command.SINGLE_SUCCESS;
+        }
+
+        var region = regionOpt.get();
+        new ManageMembers(region, player);
         return Command.SINGLE_SUCCESS;
     }
 
