@@ -1,6 +1,7 @@
 plugins {
     java
     id("xyz.jpenilla.run-paper") version "2.3.1"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "codes.shiftmc"
@@ -25,7 +26,8 @@ dependencies {
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.2.0")
     compileOnly("io.projectreactor:reactor-core:3.7.2")
     compileOnly("io.vertx:vertx-mysql-client:4.5.12")
-    compileOnly("xyz.xenondevs.invui:invui:2.0.0-alpha.7")
+
+    implementation("xyz.xenondevs.invui:invui:2.0.0-alpha.7")
 }
 
 tasks {

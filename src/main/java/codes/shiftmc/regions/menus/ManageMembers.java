@@ -1,6 +1,7 @@
 package codes.shiftmc.regions.menus;
 
 import codes.shiftmc.regions.model.Region;
+import codes.shiftmc.regions.service.RegionService;
 import it.unimi.dsi.fastutil.Pair;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -18,24 +19,17 @@ public class ManageMembers {
 
     private static final MiniMessage mm = MiniMessage.miniMessage();
 
-    public ManageMembers(Region region, Player player) {
-
+    public ManageMembers(Region region, Player player, RegionService regionService) {
         var border = Item.simple(new ItemBuilder(Material.BLACK_STAINED_GLASS_PANE).setName(" ").build());
 
         var heads = region.members().stream()
                 .map(Pair::first)
                 .map(uuid -> {
-                    String membersColor = "gray";
-                    String role = "Member";
-                    if (region.owner() == uuid) {
-                        membersColor = "<yellow>";
-                        role = "Owner";
-                    }
                     return new PlayerItem(uuid, List.of(
-                            mm.deserialize("<gray>Role: {color}{role}".replace("{color}", membersColor).replace("{role}", role)),
+                            mm.deserialize("<gray>Role: {color}{role}".replace("{color}", "<gray>").replace("{role}", "Member")),
                             Component.empty(),
-                            mm.deserialize("\uD835\uDDEB <cyan>KEY Q"),
-                            mm.deserialize("   Remove from terrain")
+                            mm.deserialize("\uD835\uDDEB <aqua>KEY Q"),
+                            mm.deserialize("   Remove from region")
                     ));
                 }).toList();
 
@@ -44,9 +38,10 @@ public class ManageMembers {
                         "# # # # # # # # #",
                         "x x x x x x x x x",
                         "x x x x x x x x x",
-                        "# # # S # A # # #")
+                        "# # # M # A # # #")
                 .addIngredient('x', Markers.CONTENT_LIST_SLOT_HORIZONTAL)
                 .addIngredient('#', border)
+                .addIngredient('M', new AddMemberItem(regionService, region))
                 .setContent((List<Item>) (List<?>) heads)
                 .build();
 

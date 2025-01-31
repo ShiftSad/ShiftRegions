@@ -182,7 +182,7 @@ public class RegionCommand {
         }
 
         var region = regionOpt.get();
-        new ManageMembers(region, player);
+        new ManageMembers(region, player, regionService);
         return Command.SINGLE_SUCCESS;
     }
 
