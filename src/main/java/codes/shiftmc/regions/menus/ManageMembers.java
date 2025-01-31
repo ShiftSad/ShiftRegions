@@ -22,6 +22,16 @@ public class ManageMembers {
     public ManageMembers(Region region, Player player, RegionService regionService) {
         var border = Item.simple(new ItemBuilder(Material.BLACK_STAINED_GLASS_PANE).setName(" ").build());
 
+        var gui = PagedGui.items()
+                .setStructure(
+                        "# # # # # # # # #",
+                        "x x x x x x x x x",
+                        "x x x x x x x x x",
+                        "# # # # M # # # #")
+                .addIngredient('x', Markers.CONTENT_LIST_SLOT_HORIZONTAL)
+                .addIngredient('#', border)
+                .addIngredient('M', new AddMemberItem(regionService, region));
+
         var heads = region.members().stream()
                 .map(Pair::first)
                 .map(uuid -> {
@@ -29,21 +39,12 @@ public class ManageMembers {
                             mm.deserialize("<gray>Role: {color}{role}".replace("{color}", "<gray>").replace("{role}", "Member")),
                             Component.empty(),
                             mm.deserialize("\uD835\uDDEB <aqua>KEY Q"),
-                            mm.deserialize("   Remove from region")
-                    ));
+                            mm.deserialize(" Remove from region")
+                    ), region, regionService);
                 }).toList();
 
-        var gui = PagedGui.items()
-                .setStructure(
-                        "# # # # # # # # #",
-                        "x x x x x x x x x",
-                        "x x x x x x x x x",
-                        "# # # M # A # # #")
-                .addIngredient('x', Markers.CONTENT_LIST_SLOT_HORIZONTAL)
-                .addIngredient('#', border)
-                .addIngredient('M', new AddMemberItem(regionService, region))
-                .setContent((List<Item>) (List<?>) heads)
-                .build();
+        gui.setContent((List<Item>) (List<?>) heads);
+        gui.build();
 
         var window = Window.single()
                 .setViewer(player)

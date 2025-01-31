@@ -74,10 +74,8 @@ public class AddMemberItem extends AbstractItem {
                 })
                 .addCloseHandler(() -> {
                     var name = data.get(player.getUniqueId());
-                    if (name == null) {
-                        player.sendMessage("No name entered");
-                        return;
-                    }
+                    player.sendMessage("No name entered");
+
                     var target = Bukkit.getOfflinePlayerIfCached(name);
                     if (target == null) {
                         player.sendMessage("Player not found");
@@ -85,6 +83,10 @@ public class AddMemberItem extends AbstractItem {
                     }
 
                     var members = region.members();
+                    if (members.stream().anyMatch(pair -> pair.left().equals(target.getUniqueId()))) {
+                        player.sendMessage("Player is already a member");
+                        return;
+                    }
                     members.add(Pair.of(target.getUniqueId(), Flag.NONE.getBit()));
                     region.setMembers(members);
 
